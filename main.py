@@ -6,6 +6,7 @@ import re
 import requests
 from bs4 import BeautifulSoup as bs
 import urllib3
+import random
 
 urllib3.disable_warnings()
 from encrypt import *
@@ -78,19 +79,25 @@ class ImuRooter():
         info = re.search('USER_INFO=(.*?);', req5).group(1)
         info = json.loads(info)
 
-        wid_data = {
+        origin_data = {
             'pageNumber': "1"
         }
+        check = self.__s.post(
+            'https://ehall.imu.edu.cn/qljfwappnew/sys/lwStuReportEpidemic/modules/healthClock/getTodayHasReported.do',
+            headers=self.__https_headers, data=origin_data).json()
+        if check['datas']['getTodayHasReported']['totalSize']!=0:
+            print('之前已打卡')
+            return
         req6 = self.__s.post(
             'https://ehall.imu.edu.cn/qljfwappnew/sys/lwStuReportEpidemic/modules/healthClock/getMyTodayReportWid.do',
-            headers=self.__https_headers, data=wid_data, verify=False).json()
+            headers=self.__https_headers, data=origin_data, verify=False).json()
         l1 = req6['datas']['getMyTodayReportWid']['rows'][0]
         # wid = req6['datas']['getMyTodayReportWid']['rows'][0]['WID']
 
-        wid_data['pageSize'] = 10
+        origin_data['pageSize'] = 10
         req7 = self.__s.post(
             'https://ehall.imu.edu.cn/qljfwappnew/sys/lwStuReportEpidemic/modules/healthClock/getLatestDailyReportData.do',
-            headers=self.__https_headers, data=wid_data).json()
+            headers=self.__https_headers, data=origin_data).json()
         l2 = req7['datas']['getLatestDailyReportData']['rows'][0]
         l1.update(l2)
         for key in l1.keys():
@@ -111,7 +118,7 @@ class ImuRooter():
             "CLASS_CODE": info['classCode'],
             "MAJOR_CODE_DISPLAY": info['majorName'],
             "MAJOR_CODE": info['majorCode'],
-            "FILL_TIME": (datetime.datetime.now() + datetime.timedelta(minutes=-10)).strftime("%Y-%m-%d %H:%M:%S"),
+            "FILL_TIME": (datetime.datetime.now() + datetime.timedelta(seconds=random.randint(-600,-60))).strftime("%Y-%m-%d %H:%M:%S"),
             "CREATED_AT": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         l1.update(appendList)
