@@ -8,7 +8,7 @@ def __PKCS5_7Padding(data):
         needSize = 16
     return data + needSize.to_bytes(1, 'little') * needSize
 
-def encodePassword(mpassword,password):
+def encode_password(mpassword,password):
     mpassword=mpassword.encode('utf-8')
     password = password.encode('utf-8')
     #秘钥，b就是表示为bytes类型
