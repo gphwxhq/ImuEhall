@@ -63,6 +63,11 @@ class ImuEhall():
             'http://cer.imu.edu.cn/authserver/login?service=https://ehall.imu.edu.cn:443/login?service=https://ehall.imu.edu.cn/new/portal/html/message/scenes_message_center.html',
             headers=http_headers, data=login_data, verify=False, allow_redirects=False).text
         soup = bs(req2, 'lxml')
+        login_res=soup.find(attrs={"class","auth_error"})
+        if login_res:
+            logger.error(login_res.text)
+            self.__send_msg += login_res.text+'\n\n'
+            return False
         redirectUrl = soup.a.attrs['href']
         #获取cookie
         req3 = self.__s.get(redirectUrl, headers=self.__https_headers, verify=False).text
