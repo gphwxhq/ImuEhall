@@ -25,7 +25,7 @@ class ImuEhall():
 
         self.__https_headers = {
             "Host": "ehall.imu.edu.cn",
-            "Referer": "https://ehall.imu.edu.cn/",
+            "Referer": "https://ehall.imu.edu.cn/qljfwappnew/sys/lwImuReportEpidemic/",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:96.0) Gecko/20100101 Firefox/96.0",
         }
 
@@ -90,9 +90,9 @@ class ImuEhall():
 
     #签到
     def sign(self):
-        #获取信息
+        #获取个人信息
         req5 = self.__s.get(
-            'https://ehall.imu.edu.cn/qljfwappnew/sys/lwStuReportEpidemic/index.do?t_s=%s' % round(time.time()),
+            'https://ehall.imu.edu.cn/qljfwappnew/sys/lwImuReportEpidemic/index.do?t_s=%s' % round(time.time()),
             headers=self.__https_headers).text
         info = re.search('USER_INFO=(.*?);', req5).group(1)
         info = json.loads(info)
@@ -100,17 +100,21 @@ class ImuEhall():
         origin_data = {
             'pageNumber': "1"
         }
+        # 获取住宿信息
+        req9 = self.__s.post(
+            "https://ehall.imu.edu.cn/qljfwappnew/sys/lwImuReportEpidemic/modules/healthClock/getSelfZsData.do",headers=self.__https_headers,data=origin_data).json()
+        zsData=req9['datas']['getSelfZsData']['rows'][0]
         #判断是否打卡
         check = self.__s.post(
-            'https://ehall.imu.edu.cn/qljfwappnew/sys/lwStuReportEpidemic/modules/healthClock/getTodayHasReported.do',
-            headers=self.__https_headers, data=origin_data).json()
+            'https://ehall.imu.edu.cn/qljfwappnew/sys/lwImuReportEpidemic/modules/healthClock/getTodayHasReported.do',
+            headers=self.__https_headers,data=origin_data).json()
         if check['datas']['getTodayHasReported']['totalSize']!=0:
             logger.info('之前已打卡')
             self.__send_msg+='之前已打卡\n\n'
             return
         #获取表单
         req6 = self.__s.post(
-            'https://ehall.imu.edu.cn/qljfwappnew/sys/lwStuReportEpidemic/modules/healthClock/getMyTodayReportWid.do',
+            'https://ehall.imu.edu.cn/qljfwappnew/sys/lwImuReportEpidemic/modules/healthClock/getMyTodayReportWid.do',
             headers=self.__https_headers, data=origin_data, verify=False).json()
         l1 = req6['datas']['getMyTodayReportWid']['rows'][0]
         # wid = req6['datas']['getMyTodayReportWid']['rows'][0]['WID']
@@ -118,7 +122,7 @@ class ImuEhall():
         origin_data['pageSize'] = 10
         #获取最新保存表单
         req7 = self.__s.post(
-            'https://ehall.imu.edu.cn/qljfwappnew/sys/lwStuReportEpidemic/modules/healthClock/getLatestDailyReportData.do',
+            'https://ehall.imu.edu.cn/qljfwappnew/sys/lwImuReportEpidemic/modules/healthClock/getLatestDailyReportData.do',
             headers=self.__https_headers, data=origin_data).json()
         l2 = req7['datas']['getLatestDailyReportData']['rows'][0]
         l1.update(l2)
@@ -126,30 +130,26 @@ class ImuEhall():
             if l1[key] == None:
                 l1[key] = ''
         #增加缺失项
-        appendList = {
-            "BY11": "",
-            "BY12": "",
-            "BY13": "",
-            "BY14": "",
-            "BY15": "",
-            "BY16": "",
-            "BY17": "",
-            "BY18": "",
-            "BY19": "",
-            "BY20": "",
+        appendList={
             "CLASS_CODE_DISPLAY": info['className'],
             "CLASS_CODE": info['classCode'],
             "MAJOR_CODE_DISPLAY": info['majorName'],
             "MAJOR_CODE": info['majorCode'],
-            "FILL_TIME": (datetime.datetime.now() + datetime.timedelta(seconds=random.randint(-600,-60))).strftime("%Y-%m-%d %H:%M:%S"),
+            "GENDER_CODE_DISPLAY":info['gender'],
+            "GENDER_CODE":info['genderCode'],
+            "CAMPUS":zsData['XQMC'],
+            "DORMITORY":zsData['SSLMC'],
+            "ROOM_NO":zsData['FJH'],
+            "FILL_TIME": (datetime.datetime.now() + datetime.timedelta(seconds=random.randint(-600, -60))).strftime(
+                "%Y-%m-%d %H:%M:%S"),
             "CREATED_AT": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         l1.update(appendList)
 
-        postUrl = 'https://ehall.imu.edu.cn/qljfwappnew/sys/lwStuReportEpidemic/modules/healthClock/T_HEALTH_DAILY_INFO_SAVE.do'
+        postUrl = 'https://ehall.imu.edu.cn/qljfwappnew/sys/lwImuReportEpidemic/modules/healthClock/T_STU_DAILY_INFO_SAVE.do'
         #post表单
         req8 = self.__s.post(postUrl, headers=self.__https_headers, data=l1).json()
-        if req8['datas']['T_HEALTH_DAILY_INFO_SAVE'] == 1:
+        if req8['datas']['T_STU_DAILY_INFO_SAVE'] == 1:
             logger.info('打卡成功')
             self.__send_msg += '打卡成功\n\n'
         else:
