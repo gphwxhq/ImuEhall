@@ -3,9 +3,7 @@
 
 name: Python application
 
-on:
-  schedule:
-    - cron: "25 4 * * *"
+on: [push,pull_request]
 
 jobs:
   build:
