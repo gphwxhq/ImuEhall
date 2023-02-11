@@ -84,7 +84,7 @@ class ImuEhall():
             self.__send_msg+='登录失败\n\n'
             return False
         if req4['data']['userName'] != None:
-            logger.info('登录成功，欢迎:' + req4['data']['userName'])
+            logger.info('登录成功')
             self.__send_msg+='登录成功\n\n'
             return True
         logger.error('登录失败')
