@@ -14,15 +14,18 @@ from encrypt import *
 from logger import logger
 
 class ImuEhall():
+    def __init__(self,username,password,send_url):
+        if username!=None and password !=None:
+            self.__username = username
+            self.__password = password
+            self.__send_url = send_url
+        else:
+            self.__parse_config()
 
-    def __init__(self):
-        self.__parse_config()
-        self.__send_msg=''
-
+        self.__send_msg = ''
         self.__s = requests.session()
         self.__s.mount('http://', requests.adapters.HTTPAdapter(max_retries=3))
         self.__s.mount('https://', requests.adapters.HTTPAdapter(max_retries=3))
-
         self.__https_headers = {
             "Host": "ehall.imu.edu.cn",
             "Referer": "https://ehall.imu.edu.cn/qljfwappnew/sys/lwImuReportEpidemic/",
